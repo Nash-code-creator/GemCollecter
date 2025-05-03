@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gem Collector Game</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+        
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            font-family: 'Orbitron', sans-serif;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 90vw; /* Increased width to 90% of viewport width */
+            max-width: 900px; /* Maximum width for very large screens */
+            height: 85vh; /* Increased height to 85% of viewport height */
+            max-height: 800px; /* Maximum height for very large screens */
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23111"/><circle cx="50" cy="50" r="1" fill="%23ffffff22"/></svg>');
+            border: 4px solid #7e57c2;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(126, 87, 194, 0.6), inset 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+        
+        #stars {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        .star {
+            position: absolute;
+            background-color: white;
+            width: 2px;
+            height: 2px;
+            border-radius: 50%;
+            opacity: 0.7;
+            animation: starAnimation 5s linear infinite;
+        }
+        
+        @keyframes starAnimation {
+            from {
+                transform: translateY(-5px);
+            }
+            to {
+                transform: translateY(105%);
+            }
+        }
+        
+        #player {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(circle at 30% 30%, #64ffda, #00bfa5);
+            border-radius: 50%;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: left 0.1s;
+            box-shadow: 0 0 15px #64ffda;
+            border: 2px solid #b2fef7;
+            z-index: 5;
+        }
+        
+        #player::after {
+            content: '';
+            position: absolute;
+            top: 10px;
+            left: 15px;
+            width: 10px;
+            height: 10px;
+            background-color: white;
+            border-radius: 50%;
+            opacity: 0.7;
+        }
+        
+        .gem {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(135deg, #29b6f6, #0288d1);
+            border-radius: 4px;
+            transform: rotate(45deg);
+            box-shadow: 0 0 10px rgba(41, 182, 246, 0.8);
+            animation: gemPulse 1.5s infinite alternate;
+            z-index: 3;
+        }
+        
+        @keyframes gemPulse {
+            from {
+                box-shadow: 0 0 5px rgba(41, 182, 246, 0.8);
+            }
+            to {
+                box-shadow: 0 0 15px rgba(41, 182, 246, 0.8);
+            }
+        }
+        
+        .obstacle {
+            position: absolute;
+            width: 60px;
+            height: 20px;
+            background: linear-gradient(to right, #ff5252, #ff1744);
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(255, 82, 82, 0.8);
+            z-index: 3;
+        }
+        
+        #score {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            font-size: 24px;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+            z-index: 5;
+        }
+        
+        #game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, rgba(15, 12, 41, 0.9), rgba(48, 43, 99, 0.95));
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            border-radius: 8px;
+        }
+        
+        #game-over h1 {
+            color: #ff5252;
+            font-size: 36px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px rgba(255, 82, 82, 0.5);
+            animation: pulse 1.5s infinite alternate;
+        }
+        
+        @keyframes pulse {
+            from {
+                text-shadow: 0 0 5px rgba(255, 82, 82, 0.5);
+            }
+            to {
+                text-shadow: 0 0 15px rgba(255, 82, 82, 0.8);
+            }
+        }
+        
+        #restart-btn {
+            padding: 15px 30px;
+            background: linear-gradient(to right, #00bfa5, #64ffda);
+            color: #111;
+            border: none;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            transition: all 0.3s;
+            box-shadow: 0 0 10px rgba(100, 255, 218, 0.5);
+            letter-spacing: 1px;
+        }
+        
+        #restart-btn:hover {
+            background: linear-gradient(to right, #00bfa5, #69f0ae);
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(100, 255, 218, 0.8);
+        }
+        
+        #start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, rgba(15, 12, 41, 0.9), rgba(48, 43, 99, 0.95));
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            border-radius: 8px;
+        }
+        
+        #start-screen h1 {
+            color: #64ffda;
+            font-size: 42px;
+            margin-bottom: 20px;
+            text-align: center;
+            text-shadow: 0 0 15px rgba(100, 255, 218, 0.5);
+            animation: titleGlow 2s infinite alternate;
+        }
+        
+        @keyframes titleGlow {
+            from {
+                text-shadow: 0 0 5px rgba(100, 255, 218, 0.5);
+            }
+            to {
+                text-shadow: 0 0 20px rgba(100, 255, 218, 0.8);
+            }
+        }
+        
+        #start-btn {
+            padding: 15px 30px;
+            background: linear-gradient(to right, #00bfa5, #64ffda);
+            color: #111;
+            border: none;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            transition: all 0.3s;
+            box-shadow: 0 0 10px rgba(100, 255, 218, 0.5);
+            letter-spacing: 1px;
+        }
+        
+        #start-btn:hover {
+            background: linear-gradient(to right, #00bfa5, #69f0ae);
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(100, 255, 218, 0.8);
+        }
+        
+        .instructions {
+            text-align: center;
+            margin: 20px;
+            font-size: 16px;
+            line-height: 1.8;
+            color: #e0e0e0;
+            max-width: 80%;
+            text-shadow: 0 0 5px rgba(224, 224, 224, 0.3);
+        }
+        
+        .score-animation {
+            position: absolute;
+            font-size: 20px;
+            color: #69f0ae;
+            animation: scoreFloat 1s forwards;
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(105, 240, 174, 0.5);
+            z-index: 4;
+        }
+        
+        @keyframes scoreFloat {
+            0% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+        }
+
+        @keyframes explosion {
+            0% { transform: scale(0.1); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+        
+        /* Minimap section */
+        #minimap-container {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 120px;
+            height: 180px;
+            background: rgba(15, 12, 41, 0.7);
+            border: 2px solid #7e57c2;
+            border-radius: 8px;
+            z-index: 6;
+            overflow: hidden;
+        }
+        
+        #minimap {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .minimap-player {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background-color: #64ffda;
+            border-radius: 50%;
+            bottom: 5px;
+        }
+        
+        .minimap-gem {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background-color: #29b6f6;
+            transform: rotate(45deg);
+        }
+        
+        .minimap-obstacle {
+            position: absolute;
+            width: 8px;
+            height: 3px;
+            background-color: #ff5252;
+            border-radius: 1px;
+        }
+        
+        /* Game controls */
+        #game-controls {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 7;
+        }
+        
+        .control-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(126, 87, 194, 0.3);
+            border: 2px solid #7e57c2;
+            color: white;
+            font-size: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            touch-action: manipulation;
+        }
+        
+        .control-btn:active {
+            background: rgba(126, 87, 194, 0.6);
+        }
+        
+        /* Controls visibility will be handled via JavaScript */
+        #game-controls {
+            display: none; /* Hidden by default, will be shown on mobile via JS */
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="stars"></div>
+        <div id="score">Score: 0</div>
+        <div id="player"></div>
+        
+        <!-- Minimap for enhanced visibility -->
+        <div id="minimap-container">
+            <div id="minimap">
+                <div class="minimap-player"></div>
+            </div>
+        </div>
+        
+        <!-- Touch controls for mobile -->
+        <div id="game-controls">
+            <div class="control-btn" id="left-btn">←</div>
+            <div class="control-btn" id="right-btn">→</div>
+        </div>
+        
+        <div id="start-screen">
+            <h1>GEM COLLECTOR</h1>
+            <p class="instructions" id="game-instructions">
+                Navigate through space collecting precious gems while avoiding dangerous obstacles.<br><br>
+                Use the LEFT and RIGHT arrow keys or A/D keys to move your ship.<br>
+                Collect blue gems for points and avoid red obstacles!
+            </p>
+            <button id="start-btn">START MISSION</button>
+        </div>
+        
+        <div id="game-over">
+            <h1>MISSION FAILED</h1>
+            <p>Final Score: <span id="final-score">0</span></p>
+            <button id="restart-btn">TRY AGAIN</button>
+        </div>
+    </div>
+
+    <script>
+        const player = document.getElementById('player');
+        const gameContainer = document.getElementById('game-container');
+        const scoreElement = document.getElementById('score');
+        const gameOverScreen = document.getElementById('game-over');
+        const finalScoreElement = document.getElementById('final-score');
+        const restartBtn = document.getElementById('restart-btn');
+        const startScreen = document.getElementById('start-screen');
+        const startBtn = document.getElementById('start-btn');
+        const starsContainer = document.getElementById('stars');
+        const minimap = document.getElementById('minimap');
+        const minimapPlayer = document.querySelector('.minimap-player');
+        const leftBtn = document.getElementById('left-btn');
+        const rightBtn = document.getElementById('right-btn');
+        const gameControls = document.getElementById('game-controls');
+        
+        let playerPosition = gameContainer.offsetWidth / 2;
+        let playerSpeed = 8;
+        let score = 0;
+        let isGameOver = false;
+        let gameInterval;
+        let obstacleInterval;
+        let gemInterval;
+        let starInterval;
+        let minimapInterval;
+        let isMobileDevice = false;
+        
+        // Adjust player speed based on game container width
+        function updatePlayerSpeed() {
+            playerSpeed = gameContainer.offsetWidth / 50;
+        }
+        
+        // Update minimap
+        function updateMinimap() {
+            if (isGameOver) return;
+            
+            // Clear minimap except for player
+            Array.from(minimap.children).forEach(child => {
+                if (!child.classList.contains('minimap-player')) {
+                    child.remove();
+                }
+            });
+            
+            // Position minimap player
+            const playerPosPercentage = playerPosition / gameContainer.offsetWidth;
+            minimapPlayer.style.left = `${playerPosPercentage * 100}%`;
+            
+            // Add gems and obstacles to minimap
+            document.querySelectorAll('.gem').forEach(gem => {
+                const gemTop = parseFloat(gem.style.top) || 0;
+                const gemLeft = parseFloat(gem.style.left) || 0;
+                
+                const minimapGem = document.createElement('div');
+                minimapGem.className = 'minimap-gem';
+                minimapGem.style.top = `${(gemTop / gameContainer.offsetHeight) * 100}%`;
+                minimapGem.style.left = `${(gemLeft / gameContainer.offsetWidth) * 100}%`;
+                
+                minimap.appendChild(minimapGem);
+            });
+            
+            document.querySelectorAll('.obstacle').forEach(obstacle => {
+                const obstacleTop = parseFloat(obstacle.style.top) || 0;
+                const obstacleLeft = parseFloat(obstacle.style.left) || 0;
+                
+                const minimapObstacle = document.createElement('div');
+                minimapObstacle.className = 'minimap-obstacle';
+                minimapObstacle.style.top = `${(obstacleTop / gameContainer.offsetHeight) * 100}%`;
+                minimapObstacle.style.left = `${(obstacleLeft / gameContainer.offsetWidth) * 100}%`;
+                
+                minimap.appendChild(minimapObstacle);
+            });
+        }
+        
+        const keysPressed = {
+            left: false,
+            right: false
+        };
+        
+        // Create initial stars
+        function createStars() {
+            // Clear existing stars
+            starsContainer.innerHTML = '';
+            
+            // Create new stars - increased number for larger game area
+            for (let i = 0; i < 100; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.width = `${Math.random() * 2 + 1}px`;
+                star.style.height = star.style.width;
+                star.style.opacity = Math.random() * 0.8 + 0.2;
+                star.style.animationDuration = `${Math.random() * 3 + 3}s`;
+                star.style.animationDelay = `${Math.random() * 5}s`;
+                
+                starsContainer.appendChild(star);
+            }
+        }
+        
+        function addStar() {
+            if (isGameOver) return;
+            
+            const star = document.createElement('div');
+            star.className = 'star';
+            star.style.left = `${Math.random() * 100}%`;
+            star.style.top = '-5px';
+            star.style.width = `${Math.random() * 2 + 1}px`;
+            star.style.height = star.style.width;
+            star.style.opacity = Math.random() * 0.8 + 0.2;
+            
+            starsContainer.appendChild(star);
+            
+            // Remove star after animation completes
+            setTimeout(() => {
+                if (star.parentNode === starsContainer) {
+                    starsContainer.removeChild(star);
+                }
+            }, 6000);
+        }
+        
+        function startGame() {
+            // Update player speed based on current game container size
+            updatePlayerSpeed();
+            
+            // Create background stars
+            createStars();
+            
+            // Reset game state
+            isGameOver = false;
+            score = 0;
+            scoreElement.textContent = `Score: ${score}`;
+            
+            // Remove all gems and obstacles
+            document.querySelectorAll('.gem, .obstacle, .score-animation').forEach(element => {
+                element.remove();
+            });
+            
+            // Reset player position
+            playerPosition = gameContainer.offsetWidth / 2;
+            player.style.left = `${playerPosition - player.offsetWidth / 2}px`;
+            
+            // Hide start screen
+            startScreen.style.display = 'none';
+            
+            // Hide game over screen
+            gameOverScreen.style.display = 'none';
+            
+            // Start game loops
+            gameInterval = setInterval(update, 20);
+            obstacleInterval = setInterval(createObstacle, 1500);
+            gemInterval = setInterval(createGem, 1000);
+            starInterval = setInterval(addStar, 300);
+            minimapInterval = setInterval(updateMinimap, 100);
+        }
+        
+        function update() {
+            if (isGameOver) return;
+            
+            // Move player based on keys pressed
+            if (keysPressed.left) {
+                playerPosition -= playerSpeed;
+            }
+            if (keysPressed.right) {
+                playerPosition += playerSpeed;
+            }
+            
+            // Keep player within bounds
+            playerPosition = Math.max(player.offsetWidth / 2, Math.min(gameContainer.offsetWidth - player.offsetWidth / 2, playerPosition));
+            player.style.left = `${playerPosition - player.offsetWidth / 2}px`;
+            
+            // Move all falling objects
+            document.querySelectorAll('.gem, .obstacle').forEach(element => {
+                const currentTop = parseFloat(element.style.top) || 0;
+                const fallSpeed = element.classList.contains('gem') ? 4 : 5;
+                
+                element.style.top = `${currentTop + fallSpeed}px`;
+                
+                // Add rotation to gems
+                if (element.classList.contains('gem')) {
+                    const currentRotation = parseFloat(element.getAttribute('data-rotation') || 45);
+                    const newRotation = currentRotation + 0.5;
+                    element.style.transform = `rotate(${newRotation}deg)`;
+                    element.setAttribute('data-rotation', newRotation);
+                }
+                
+                // Remove if it goes out of screen
+                if (currentTop > gameContainer.offsetHeight) {
+                    element.remove();
+                }
+                
+                // Check collision with player
+                checkCollision(element);
+            });
+        }
+        
+        function createGem() {
+            if (isGameOver) return;
+            
+            const gem = document.createElement('div');
+            gem.className = 'gem';
+            
+            // Random horizontal position
+            const randomX = Math.random() * (gameContainer.offsetWidth - 30);
+            gem.style.left = `${randomX}px`;
+            gem.style.top = '-30px';
+            gem.setAttribute('data-rotation', 45);
+            
+            gameContainer.appendChild(gem);
+        }
+        
+        function createObstacle() {
+            if (isGameOver) return;
+            
+            const obstacle = document.createElement('div');
+            obstacle.className = 'obstacle';
+            
+            // Random horizontal position
+            const randomX = Math.random() * (gameContainer.offsetWidth - 60);
+            obstacle.style.left = `${randomX}px`;
+            obstacle.style.top = '-20px';
+            
+            gameContainer.appendChild(obstacle);
+        }
+        
+        function showScoreAnimation(x, y) {
+            const scoreAnim = document.createElement('div');
+            scoreAnim.className = 'score-animation';
+            scoreAnim.textContent = '+10';
+            scoreAnim.style.left = `${x}px`;
+            scoreAnim.style.top = `${y}px`;
+            
+            gameContainer.appendChild(scoreAnim);
+            
+            // Remove after animation completes
+            setTimeout(() => {
+                if (scoreAnim.parentNode === gameContainer) {
+                    gameContainer.removeChild(scoreAnim);
+                }
+            }, 1000);
+        }
+        
+        function checkCollision(element) {
+            const playerRect = player.getBoundingClientRect();
+            const elementRect = element.getBoundingClientRect();
+            
+            if (!(
+                playerRect.right < elementRect.left ||
+                playerRect.left > elementRect.right ||
+                playerRect.bottom < elementRect.top ||
+                playerRect.top > elementRect.bottom
+            )) {
+                // Collision detected
+                if (element.classList.contains('gem')) {
+                    // Collected a gem
+                    score += 10;
+                    scoreElement.textContent = `Score: ${score}`;
+                    
+                    // Show score animation
+                    const gemCenter = {
+                        x: elementRect.left - gameContainer.getBoundingClientRect().left + elementRect.width / 2,
+                        y: elementRect.top - gameContainer.getBoundingClientRect().top + elementRect.height / 2
+                    };
+                    showScoreAnimation(gemCenter.x, gemCenter.y);
+                    
+                    // Remove the gem
+                    element.remove();
+                } else if (element.classList.contains('obstacle')) {
+                    // Add explosion effect
+                    const explosion = document.createElement('div');
+                    explosion.style.position = 'absolute';
+                    explosion.style.width = '80px';
+                    explosion.style.height = '80px';
+                    explosion.style.borderRadius = '50%';
+                    explosion.style.background = 'radial-gradient(circle, rgba(255,223,89,0.8) 0%, rgba(255,82,82,0.6) 60%, rgba(255,23,68,0) 100%)';
+                    explosion.style.left = `${playerPosition - 40}px`;
+                    explosion.style.bottom = '10px';
+                    explosion.style.animation = 'explosion 0.5s forwards';
+                    explosion.style.zIndex = '4';
+                    
+                    gameContainer.appendChild(explosion);
+                    
+                    // Hit an obstacle
+                    gameOver();
+                    
+                    // Remove explosion after animation
+                    setTimeout(() => {
+                        if (explosion.parentNode === gameContainer) {
+                            gameContainer.removeChild(explosion);
+                        }
+                    }, 500);
+                }
+            }
+        }
+        
+        function gameOver() {
+            isGameOver = true;
+            clearInterval(gameInterval);
+            clearInterval(obstacleInterval);
+            clearInterval(gemInterval);
+            clearInterval(starInterval);
+            clearInterval(minimapInterval);
+            
+            finalScoreElement.textContent = score;
+            
+            // Add a slight delay before showing game over screen
+            setTimeout(() => {
+                gameOverScreen.style.display = 'flex';
+            }, 500);
+        }
+        
+        // Detect if device is mobile
+        function detectMobileDevice() {
+            const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+            
+            // Check for common mobile user agents
+            if (/android/i.test(userAgent) || 
+                /iPad|iPhone|iPod/.test(userAgent) || 
+                /webOS|BlackBerry|IEMobile|Opera Mini/i.test(userAgent) ||
+                (window.matchMedia && window.matchMedia('(max-width: 768px)').matches)) {
+                return true;
+            }
+            
+            // Check for touch capabilities (most mobile devices support touch)
+            if ('ontouchstart' in window || 
+                navigator.maxTouchPoints > 0 || 
+                navigator.msMaxTouchPoints > 0) {
+                return true;
+            }
+            
+            return false;
+        }
+        
+        // Initialize device detection
+        function initDeviceSettings() {
+            isMobileDevice = detectMobileDevice();
+            
+            if (isMobileDevice) {
+                // Show touch controls for mobile devices
+                gameControls.style.display = 'flex';
+                console.log("Mobile device detected - touch controls enabled");
+            } else {
+                // Hide touch controls for desktop
+                gameControls.style.display = 'none';
+                console.log("Desktop device detected - using keyboard controls");
+            }
+        }
+        
+        // Call device detection on load
+        initDeviceSettings();
+        
+        // Window resize handler
+        window.addEventListener('resize', () => {
+            updatePlayerSpeed();
+            initDeviceSettings(); // Re-check device type on resize
+        });
+        
+        // Event listeners for keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+                keysPressed.left = true;
+            }
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+                keysPressed.right = true;
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+                keysPressed.left = false;
+            }
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+                keysPressed.right = false;
+            }
+        });
+        
+        // Event listeners for touch controls
+        leftBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            keysPressed.left = true;
+        });
+        
+        leftBtn.addEventListener('touchend', () => {
+            keysPressed.left = false;
+        });
+        
+        rightBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            keysPressed.right = true;
+        });
+        
+        rightBtn.addEventListener('touchend', () => {
+            keysPressed.right = false;
+        });
+        
+        // Mouse controls for buttons (also useful for desktop testing)
+        leftBtn.addEventListener('mousedown', () => {
+            keysPressed.left = true;
+        });
+        
+        leftBtn.addEventListener('mouseup', () => {
+            keysPressed.left = false;
+        });
+        
+        leftBtn.addEventListener('mouseleave', () => {
+            keysPressed.left = false;
+        });
+        
+        rightBtn.addEventListener('mousedown', () => {
+            keysPressed.right = true;
+        });
+        
+        rightBtn.addEventListener('mouseup', () => {
+            keysPressed.right = false;
+        });
+        
+        rightBtn.addEventListener('mouseleave', () => {
+            keysPressed.right = false;
+        });
+        
+        startBtn.addEventListener('click', startGame);
+        restartBtn.addEventListener('click', startGame);
+        
+        // Initialize minimap player
+        minimapPlayer.style.left = '50%';
+        
+        // Update instructions based on device type
+        function updateInstructions() {
+            const instructionsElement = document.getElementById('game-instructions');
+            
+            if (isMobileDevice) {
+                instructionsElement.innerHTML = `
+                    Navigate through space collecting precious gems while avoiding dangerous obstacles.<br><br>
+                    Use the on-screen LEFT and RIGHT buttons to move your ship.<br>
+                    Collect blue gems for points and avoid red obstacles!
+                `;
+            } else {
+                instructionsElement.innerHTML = `
+                    Navigate through space collecting precious gems while avoiding dangerous obstacles.<br><br>
+                    Use the LEFT and RIGHT arrow keys or A/D keys to move your ship.<br>
+                    Collect blue gems for points and avoid red obstacles!
+                `;
+            }
+        }
+        
+        // Call once on initial load
+        updateInstructions();
+        
+        // Re-update instructions when device type changes
+        window.addEventListener('resize', updateInstructions);
+    </script>
+</body>
+</html>
